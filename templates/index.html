@@ -3,50 +3,135 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>せどり自動出品アプリ</title>
+  <title>Shoppi — せどり自動出品</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ivory:    '#FAF7F2',
+            cream:    '#F5EFE6',
+            sand:     '#E8DDD5',
+            terra:    '#C4694F',
+            terradark:'#A8573E',
+            rose:     '#D4A0A0',
+            sage:     '#8FAF8F',
+            charcoal: '#3D3531',
+            muted:    '#8B7D77',
+          },
+          fontFamily: {
+            display: ['Playfair Display', 'serif'],
+            body:    ['Noto Sans JP', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <style>
     [x-cloak] { display: none !important; }
-    .step-active { @apply bg-indigo-600 text-white; }
-    .step-done   { @apply bg-green-500 text-white; }
-    .step-idle   { @apply bg-gray-200 text-gray-500; }
+    body { font-family: 'Noto Sans JP', sans-serif; background-color: #FAF7F2; }
+    .font-display { font-family: 'Playfair Display', serif; }
+    .card { background: #FFFDF8; border-radius: 1.25rem; box-shadow: 0 2px 16px rgba(61,53,49,0.07); }
+    .btn-primary {
+      background: #C4694F;
+      color: white;
+      border-radius: 999px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover { background: #A8573E; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(196,105,79,0.35); }
+    .btn-primary:disabled { background: #D4B8B0; transform: none; box-shadow: none; }
+    .btn-outline {
+      border: 1.5px solid #E8DDD5;
+      color: #8B7D77;
+      border-radius: 999px;
+      transition: all 0.2s ease;
+    }
+    .btn-outline:hover { border-color: #C4694F; color: #C4694F; }
+    .tag-selected { background: #C4694F; color: white; }
+    .tag-idle { background: #F5EFE6; color: #8B7D77; }
+    .tag-idle:hover { background: #E8DDD5; color: #3D3531; }
+    .product-card { background: #FFFDF8; border-radius: 1.25rem; box-shadow: 0 2px 12px rgba(61,53,49,0.06); border: 1.5px solid transparent; transition: all 0.2s ease; }
+    .product-card.selected { border-color: #C4694F; background: #FFF8F6; }
+    .step-dot { width: 28px; height: 28px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; transition: all 0.3s ease; }
+    .step-done { background: #8FAF8F; color: white; }
+    .step-active { background: #C4694F; color: white; }
+    .step-idle { background: #E8DDD5; color: #8B7D77; }
+    .step-line { flex: 1; height: 1.5px; background: #E8DDD5; margin: 0 4px; }
+    .step-line.done { background: #8FAF8F; }
+    input, textarea, select {
+      background: #FAF7F2;
+      border: 1.5px solid #E8DDD5;
+      border-radius: 0.75rem;
+      padding: 0.625rem 0.875rem;
+      font-size: 0.875rem;
+      font-family: 'Noto Sans JP', sans-serif;
+      color: #3D3531;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #C4694F;
+      background: white;
+    }
+    .price-badge { background: #FFF0EC; color: #C4694F; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+    .suggest-badge { background: #F0F7F0; color: #8FAF8F; border-radius: 999px; padding: 2px 10px; font-size: 11px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.35s ease forwards; }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen" x-data="app()" x-cloak>
+<body class="min-h-dvh" x-data="app()" x-cloak>
 
   <!-- ヘッダー -->
-  <header class="bg-indigo-600 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow">
-    <span class="text-2xl">🛍️</span>
-    <h1 class="text-lg font-bold">せどり自動出品</h1>
+  <header class="sticky top-0 z-20 bg-ivory/90 backdrop-blur-sm border-b border-sand px-5 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C4694F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+      </svg>
+      <span class="font-display text-lg text-charcoal tracking-wide">Shoppi</span>
+    </div>
+    <span class="text-xs text-muted" x-text="`STEP ${step} / ${steps.length}`"></span>
   </header>
 
   <!-- ステップインジケーター -->
-  <div class="flex justify-center gap-2 py-3 px-4 bg-white border-b shadow-sm sticky top-14 z-10">
-    <template x-for="(label, i) in steps" :key="i">
-      <div class="flex items-center gap-1">
-        <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
-             :class="step > i+1 ? 'bg-green-500 text-white' : step === i+1 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'">
-          <span x-show="step <= i+1" x-text="i+1"></span>
-          <span x-show="step > i+1">✓</span>
+  <div class="sticky top-14 z-10 bg-ivory/90 backdrop-blur-sm px-5 py-3 border-b border-sand">
+    <div class="flex items-center justify-between max-w-lg mx-auto">
+      <template x-for="(label, i) in steps" :key="i">
+        <div class="flex items-center" :class="i < steps.length - 1 ? 'flex-1' : ''">
+          <div class="flex flex-col items-center gap-1">
+            <div class="step-dot" :class="step > i+1 ? 'step-done' : step === i+1 ? 'step-active' : 'step-idle'">
+              <template x-if="step > i+1">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </template>
+              <span x-show="step <= i+1" x-text="i+1" class="text-xs"></span>
+            </div>
+            <span class="text-[10px] hidden sm:block whitespace-nowrap" :class="step === i+1 ? 'text-terra font-medium' : 'text-muted'" x-text="label"></span>
+          </div>
+          <div x-show="i < steps.length - 1" class="step-line mx-1" :class="step > i+1 ? 'done' : ''"></div>
         </div>
-        <span class="text-xs hidden sm:inline" :class="step === i+1 ? 'text-indigo-600 font-semibold' : 'text-gray-400'" x-text="label"></span>
-        <span x-show="i < steps.length-1" class="text-gray-300 text-xs">›</span>
-      </div>
-    </template>
+      </template>
+    </div>
   </div>
 
-  <main class="max-w-lg mx-auto px-4 py-6">
+  <main class="max-w-lg mx-auto px-4 py-6 pb-24">
 
     <!-- STEP 1: コンセプト入力 -->
-    <div x-show="step === 1">
-      <h2 class="text-xl font-bold mb-1">店舗コンセプトを入力</h2>
-      <p class="text-gray-500 text-sm mb-4">どんな店にしたいかを教えてください</p>
+    <div x-show="step === 1" class="fade-in space-y-5">
+      <div>
+        <h2 class="font-display text-2xl text-charcoal mb-1">あなたのお店を<br>教えてください</h2>
+        <p class="text-sm text-muted">コンセプトをもとにAIがトレンドをリサーチします</p>
+      </div>
 
-      <div class="bg-white rounded-2xl shadow p-4 space-y-4">
+      <div class="card p-5 space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">カテゴリ</label>
-          <select x-model="form.category" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+          <label class="block text-xs font-medium text-muted mb-1.5 tracking-wide uppercase">カテゴリ</label>
+          <select x-model="form.category">
             <option value="子供服">👶 子供服</option>
             <option value="ペット用品">🐾 ペット用品</option>
             <option value="レディースファッション">👗 レディースファッション</option>
@@ -56,146 +141,155 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">店舗コンセプト</label>
-          <textarea x-model="form.concept"
-            rows="4"
-            placeholder="例：韓国テイストのおしゃれな子供服を安く提供したい。Instagram映えするデザインを重視。"
-            class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none resize-none"></textarea>
+          <label class="block text-xs font-medium text-muted mb-1.5 tracking-wide uppercase">お店のコンセプト</label>
+          <textarea x-model="form.concept" rows="4"
+            placeholder="例：韓国テイストのおしゃれな子供服を提供したい。Instagram映えするデザインを重視。"
+            class="resize-none leading-relaxed"></textarea>
         </div>
 
-        <button @click="doResearch()"
-          :disabled="!form.concept || loading"
-          class="w-full bg-indigo-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
-          <span x-show="!loading">🔍 トレンドリサーチ開始</span>
-          <span x-show="loading" class="flex items-center gap-2">
-            <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="white" stroke-width="4"/>
-              <path class="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z"/>
-            </svg>
-            AIがリサーチ中...
-          </span>
+        <button @click="doResearch()" :disabled="!form.concept || loading"
+          class="btn-primary w-full py-3.5 flex items-center justify-center gap-2 text-sm">
+          <template x-if="!loading">
+            <span class="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              AIでトレンドリサーチ
+            </span>
+          </template>
+          <template x-if="loading">
+            <span class="flex items-center gap-2">
+              <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="white" stroke-width="4"/><path class="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z"/></svg>
+              AIがリサーチ中...
+            </span>
+          </template>
         </button>
       </div>
     </div>
 
-    <!-- STEP 2: キーワード表示 -->
-    <div x-show="step === 2">
-      <h2 class="text-xl font-bold mb-1">トレンドキーワード</h2>
-      <p class="text-gray-500 text-sm mb-4">検索に使うキーワードを選んでください</p>
+    <!-- STEP 2: キーワード -->
+    <div x-show="step === 2" class="fade-in space-y-5">
+      <div>
+        <h2 class="font-display text-2xl text-charcoal mb-1">トレンドキーワード</h2>
+        <p class="text-sm text-muted">検索に使うキーワードを選んでください</p>
+      </div>
 
-      <div class="bg-white rounded-2xl shadow p-4 mb-4 space-y-3">
-        <div class="bg-indigo-50 rounded-xl p-3">
-          <p class="text-sm text-indigo-800" x-text="research.trend_reason"></p>
+      <div class="card p-5 space-y-4">
+        <div class="bg-cream rounded-xl p-4">
+          <p class="text-sm text-charcoal leading-relaxed" x-text="research.trend_reason"></p>
         </div>
-        <div>
-          <p class="text-xs text-gray-500 mb-1">ターゲット層</p>
-          <p class="text-sm font-medium" x-text="research.target_audience"></p>
-        </div>
-        <div>
-          <p class="text-xs text-gray-500 mb-1">推奨仕入れ価格帯</p>
-          <p class="text-sm font-medium" x-text="`¥${research.price_range?.min?.toLocaleString()} 〜 ¥${research.price_range?.max?.toLocaleString()}`"></p>
+        <div class="flex gap-4 text-sm">
+          <div>
+            <p class="text-[11px] text-muted uppercase tracking-wide mb-0.5">ターゲット</p>
+            <p class="text-charcoal font-medium" x-text="research.target_audience"></p>
+          </div>
+          <div>
+            <p class="text-[11px] text-muted uppercase tracking-wide mb-0.5">推奨仕入れ価格</p>
+            <p class="text-charcoal font-medium" x-text="`¥${research.price_range?.min?.toLocaleString()} 〜 ¥${research.price_range?.max?.toLocaleString()}`"></p>
+          </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl shadow p-4 mb-4">
-        <p class="text-sm font-medium text-gray-700 mb-2">検索キーワード（タップして選択）</p>
+      <div class="card p-5">
+        <p class="text-xs font-medium text-muted uppercase tracking-wide mb-3">キーワードを選択</p>
         <div class="flex flex-wrap gap-2">
           <template x-for="kw in research.keywords" :key="kw">
             <button @click="selectedKeyword = kw"
-              :class="selectedKeyword === kw ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'"
-              class="px-3 py-1.5 rounded-full text-sm font-medium transition"
+              :class="selectedKeyword === kw ? 'tag-selected' : 'tag-idle'"
+              class="px-4 py-2 rounded-full text-sm transition-all"
               x-text="kw"></button>
           </template>
         </div>
       </div>
 
-      <div class="flex gap-2">
-        <button @click="step = 1" class="flex-1 border border-gray-300 text-gray-600 font-bold py-3 rounded-xl">← 戻る</button>
-        <button @click="doSearch()"
-          :disabled="!selectedKeyword || loading"
-          class="flex-2 flex-grow-2 bg-indigo-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
-          <span x-show="!loading">商品を検索</span>
-          <span x-show="loading" class="flex items-center gap-2">
-            <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="white" stroke-width="4"/>
-              <path class="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z"/>
-            </svg>
-            検索中...
-          </span>
+      <div class="flex gap-3">
+        <button @click="step = 1" class="btn-outline px-5 py-3 text-sm">← 戻る</button>
+        <button @click="doSearch()" :disabled="!selectedKeyword || loading"
+          class="btn-primary flex-1 py-3 text-sm flex items-center justify-center gap-2">
+          <template x-if="!loading"><span>商品を検索する</span></template>
+          <template x-if="loading">
+            <span class="flex items-center gap-2">
+              <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="white" stroke-width="4"/><path class="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z"/></svg>
+              検索中...
+            </span>
+          </template>
         </button>
       </div>
     </div>
 
-    <!-- STEP 3: 商品一覧 -->
-    <div x-show="step === 3">
-      <h2 class="text-xl font-bold mb-1">商品候補</h2>
-      <p class="text-gray-500 text-sm mb-4">出品したい商品を選んでください（複数可）</p>
+    <!-- STEP 3: 商品選択 -->
+    <div x-show="step === 3" class="fade-in space-y-4">
+      <div>
+        <h2 class="font-display text-2xl text-charcoal mb-1">商品を選ぶ</h2>
+        <p class="text-sm text-muted">出品したい商品をタップして選択（複数可）</p>
+      </div>
 
-      <div class="space-y-3 mb-4">
+      <div class="space-y-3">
         <template x-for="product in products" :key="product.id">
           <div @click="toggleSelect(product)"
-            :class="isSelected(product) ? 'ring-2 ring-indigo-500 bg-indigo-50' : 'bg-white'"
-            class="rounded-2xl shadow p-3 flex gap-3 cursor-pointer transition">
-            <div class="relative">
-              <img :src="product.image_url" class="w-20 h-20 rounded-xl object-cover bg-gray-100" />
-              <div x-show="isSelected(product)" class="absolute -top-1 -right-1 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold">✓</div>
+            class="product-card p-3 flex gap-3 cursor-pointer"
+            :class="isSelected(product) ? 'selected' : ''">
+            <div class="relative shrink-0">
+              <img :src="product.image_url" class="w-20 h-20 rounded-xl object-cover bg-cream" />
+              <div x-show="isSelected(product)"
+                class="absolute -top-1.5 -right-1.5 w-6 h-6 bg-terra rounded-full flex items-center justify-center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium line-clamp-2" x-text="product.title"></p>
-              <p class="text-indigo-600 font-bold mt-1" x-text="`¥${product.price_jpy.toLocaleString()}`"></p>
-              <div class="flex items-center gap-2 mt-1">
-                <span class="text-yellow-500 text-xs">★ <span x-text="product.rating"></span></span>
-                <span class="text-gray-400 text-xs" x-text="`${product.orders}件`"></span>
+              <p class="text-sm font-medium text-charcoal line-clamp-2 mb-1.5" x-text="product.title"></p>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="price-badge" x-text="`仕入 ¥${product.price_jpy.toLocaleString()}`"></span>
+                <span class="suggest-badge" x-text="`販売 ¥${product.suggested_price?.toLocaleString()}`"></span>
+              </div>
+              <div class="flex items-center gap-2 mt-1.5">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="#C4694F" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <span class="text-xs text-muted" x-text="product.rating"></span>
+                <span class="text-xs text-muted" x-text="`${product.orders}件`"></span>
               </div>
             </div>
           </div>
         </template>
       </div>
 
-      <div class="flex gap-2 sticky bottom-4">
-        <button @click="step = 2" class="border border-gray-300 text-gray-600 font-bold py-3 px-4 rounded-xl">← 戻る</button>
-        <button @click="step = 4"
-          :disabled="selectedProducts.length === 0"
-          class="flex-1 bg-indigo-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition">
-          <span x-text="`選択した商品を確認 (${selectedProducts.length}件)`"></span>
-        </button>
+      <div class="fixed bottom-0 left-0 right-0 bg-ivory/95 backdrop-blur-sm border-t border-sand px-4 py-4">
+        <div class="max-w-lg mx-auto flex gap-3">
+          <button @click="step = 2" class="btn-outline px-5 py-3 text-sm">← 戻る</button>
+          <button @click="step = 4" :disabled="selectedProducts.length === 0"
+            class="btn-primary flex-1 py-3 text-sm" x-text="`選択した商品を確認 (${selectedProducts.length}件)`"></button>
+        </div>
       </div>
     </div>
 
-    <!-- STEP 4: 出品情報確認・価格設定 -->
-    <div x-show="step === 4">
-      <h2 class="text-xl font-bold mb-1">出品情報の確認</h2>
-      <p class="text-gray-500 text-sm mb-4">価格を設定して出品しましょう</p>
+    <!-- STEP 4: 価格設定 -->
+    <div x-show="step === 4" class="fade-in space-y-5">
+      <div>
+        <h2 class="font-display text-2xl text-charcoal mb-1">価格を設定する</h2>
+        <p class="text-sm text-muted">おすすめ価格（原価×3）が自動入力されています</p>
+      </div>
 
-      <div class="space-y-4 mb-4">
+      <div class="space-y-4">
         <template x-for="(product, idx) in selectedProducts" :key="product.id">
-          <div class="bg-white rounded-2xl shadow overflow-hidden">
-            <img :src="product.image_url" class="w-full h-48 object-cover" />
+          <div class="card overflow-hidden">
+            <img :src="product.image_url" class="w-full h-44 object-cover" />
             <div class="p-4 space-y-3">
               <div>
-                <label class="text-xs text-gray-500">商品タイトル</label>
-                <input type="text" :value="product.title"
-                  @input="selectedProducts[idx].title = $event.target.value"
-                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" />
+                <label class="block text-xs text-muted mb-1">商品タイトル</label>
+                <input type="text" :value="product.title" @input="selectedProducts[idx].title = $event.target.value" />
               </div>
               <div>
-                <label class="text-xs text-gray-500">商品説明</label>
-                <textarea rows="3"
+                <label class="block text-xs text-muted mb-1">商品説明</label>
+                <textarea rows="3" class="resize-none"
                   @input="selectedProducts[idx].description = $event.target.value"
-                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 resize-none"
                   x-text="product.description"></textarea>
               </div>
               <div class="flex gap-3 items-end">
                 <div class="flex-1">
-                  <label class="text-xs text-gray-500">仕入れ価格</label>
-                  <p class="text-sm font-medium mt-1" x-text="`¥${product.price_jpy.toLocaleString()}`"></p>
+                  <label class="block text-xs text-muted mb-1">仕入れ価格</label>
+                  <div class="price-badge inline-block" x-text="`¥${product.price_jpy.toLocaleString()}`"></div>
                 </div>
                 <div class="flex-1">
-                  <label class="text-xs text-gray-500 font-medium text-indigo-600">販売価格 (円) *</label>
-                  <input type="number"
-                    x-model="selectedProducts[idx].sell_price"
-                    :placeholder="`推奨: ¥${Math.ceil(product.price_jpy * 2.5).toLocaleString()}`"
-                    class="w-full border-2 border-indigo-300 rounded-lg px-3 py-2 text-sm mt-1 focus:border-indigo-500 focus:outline-none" />
+                  <label class="block text-xs font-medium text-terra mb-1">販売価格（円）</label>
+                  <input type="number" x-model="selectedProducts[idx].sell_price"
+                    class="border-terra/50 focus:border-terra" />
                 </div>
               </div>
             </div>
@@ -203,47 +297,54 @@
         </template>
       </div>
 
-      <div class="flex gap-2 sticky bottom-4">
-        <button @click="step = 3" class="border border-gray-300 text-gray-600 font-bold py-3 px-4 rounded-xl">← 戻る</button>
-        <button @click="step = 5"
-          :disabled="!allPricesSet()"
-          class="flex-1 bg-green-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition">
-          出品へ進む →
-        </button>
+      <div class="fixed bottom-0 left-0 right-0 bg-ivory/95 backdrop-blur-sm border-t border-sand px-4 py-4">
+        <div class="max-w-lg mx-auto flex gap-3">
+          <button @click="step = 3" class="btn-outline px-5 py-3 text-sm">← 戻る</button>
+          <button @click="step = 5" :disabled="!allPricesSet()"
+            class="btn-primary flex-1 py-3 text-sm">出品へ進む →</button>
+        </div>
       </div>
     </div>
 
-    <!-- STEP 5: 出品実行 -->
-    <div x-show="step === 5">
-      <h2 class="text-xl font-bold mb-1">出品・投稿</h2>
-      <p class="text-gray-500 text-sm mb-4">プラットフォームを選んで出品してください</p>
+    <!-- STEP 5: 出品 -->
+    <div x-show="step === 5" class="fade-in space-y-5">
+      <div>
+        <h2 class="font-display text-2xl text-charcoal mb-1">出品・投稿する</h2>
+        <p class="text-sm text-muted">各プラットフォームに出品しましょう</p>
+      </div>
 
-      <div class="space-y-3 mb-4">
+      <div class="space-y-4">
         <template x-for="product in selectedProducts" :key="product.id">
-          <div class="bg-white rounded-2xl shadow p-4">
-            <div class="flex gap-3 mb-3">
-              <img :src="product.image_url" class="w-16 h-16 rounded-xl object-cover" />
-              <div>
-                <p class="text-sm font-medium line-clamp-2" x-text="product.title"></p>
-                <p class="text-green-600 font-bold" x-text="`販売価格: ¥${Number(product.sell_price).toLocaleString()}`"></p>
+          <div class="card overflow-hidden">
+            <div class="flex gap-3 p-4">
+              <img :src="product.image_url" class="w-16 h-16 rounded-xl object-cover shrink-0" />
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-charcoal line-clamp-2" x-text="product.title"></p>
+                <p class="text-terra font-semibold text-sm mt-1" x-text="`¥${Number(product.sell_price).toLocaleString()}`"></p>
               </div>
             </div>
-            <div class="grid grid-cols-2 gap-2">
-              <a :href="`https://thebase.com/`" target="_blank"
-                class="bg-orange-500 text-white text-center py-2 rounded-xl text-sm font-bold">
-                BASE に出品 →
+            <div class="px-4 pb-4 flex flex-col gap-2">
+              <a href="https://thebase.com/" target="_blank"
+                class="flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium text-white"
+                style="background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+                BASE に出品する
               </a>
               <button
-                class="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-xl text-sm font-bold">
-                Instagram 投稿
+                class="flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium text-white"
+                style="background: linear-gradient(135deg, #833AB4 0%, #FD1D1D 50%, #F77737 100%);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                Instagram に投稿する
               </button>
+              <p class="text-[11px] text-muted text-center">※ API連携後は自動投稿になります</p>
             </div>
-            <p class="text-xs text-gray-400 mt-2 text-center">※ API連携後は自動化されます</p>
           </div>
         </template>
       </div>
 
-      <button @click="reset()" class="w-full border border-gray-300 text-gray-600 font-bold py-3 rounded-xl">
+      <button @click="reset()"
+        class="btn-outline w-full py-3 text-sm flex items-center justify-center gap-2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
         最初からやり直す
       </button>
     </div>
