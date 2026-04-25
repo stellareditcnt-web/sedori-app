@@ -33,6 +33,28 @@ async def translate_keywords(keyword: str) -> list[str]:
     return valid if valid else RELIABLE_KEYWORDS[:3]
 
 
+async def translate_titles_to_japanese(titles: list[str]) -> list[str]:
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    numbered = "\n".join(f"{i+1}. {t}" for i, t in enumerate(titles))
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=(
+            f"以下の英語商品タイトルを自然な日本語に翻訳してください。\n"
+            f"番号付きリストで、番号と翻訳のみ返してください。\n\n{numbered}"
+        ),
+    )
+    lines = [l.strip() for l in response.text.strip().splitlines() if l.strip()]
+    result = []
+    for line in lines:
+        if ". " in line:
+            result.append(line.split(". ", 1)[1])
+        else:
+            result.append(line)
+    while len(result) < len(titles):
+        result.append(titles[len(result)])
+    return result[:len(titles)]
+
+
 async def search_aliexpress(keyword: str) -> list:
     api_key = os.getenv("RAPIDAPI_KEY")
     headers = {
@@ -77,6 +99,15 @@ async def search_aliexpress(keyword: str) -> list:
             "rating": float(info.get("averageStarRate") or 4.5),
             "orders": int(info.get("sales") or 0),
         })
+
+    # タイトルを日本語に翻訳
+    if products:
+        en_titles = [p["title"] for p in products]
+        ja_titles = await translate_titles_to_japanese(en_titles)
+        for p, ja in zip(products, ja_titles):
+            p["title"] = ja
+            p["description"] = ja
+
     return products
 
 

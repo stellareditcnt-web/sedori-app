@@ -324,19 +324,45 @@
               </div>
             </div>
             <div class="px-4 pb-4 flex flex-col gap-2">
-              <a href="https://thebase.com/" target="_blank"
-                class="flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium text-white"
-                style="background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-                BASE に出品する
-              </a>
+              <!-- BASE 出品ボタン -->
+              <button @click="publishToBase(product)"
+                :disabled="product.base_status === 'loading'"
+                class="flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium text-white transition"
+                :style="product.base_status === 'success' ? 'background:#8FAF8F' : 'background:linear-gradient(135deg,#FF6B35 0%,#F7931E 100%)'">
+                <template x-if="product.base_status === 'loading'">
+                  <span class="flex items-center gap-2">
+                    <svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="white" stroke-width="4"/><path class="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z"/></svg>
+                    出品中...
+                  </span>
+                </template>
+                <template x-if="product.base_status === 'success'">
+                  <span class="flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    出品完了！
+                  </span>
+                </template>
+                <template x-if="!product.base_status || product.base_status === 'error'">
+                  <span class="flex items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+                    BASE に自動出品する
+                  </span>
+                </template>
+              </button>
+              <template x-if="product.base_status === 'success' && product.base_admin_url">
+                <a :href="product.base_admin_url" target="_blank"
+                  class="text-center text-xs text-terra underline">管理画面で確認する →</a>
+              </template>
+              <template x-if="product.base_status === 'error'">
+                <p class="text-center text-xs text-red-400" x-text="product.base_error"></p>
+              </template>
+              <!-- Instagram ボタン -->
               <button
                 class="flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium text-white"
                 style="background: linear-gradient(135deg, #833AB4 0%, #FD1D1D 50%, #F77737 100%);">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
                 Instagram に投稿する
               </button>
-              <p class="text-[11px] text-muted text-center">※ API連携後は自動投稿になります</p>
+              <p class="text-[11px] text-muted text-center">※ Instagram は API連携後に自動投稿になります</p>
             </div>
           </div>
         </template>

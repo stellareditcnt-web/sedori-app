@@ -69,6 +69,35 @@ function app() {
         this.selectedProducts.every(p => p.sell_price && Number(p.sell_price) > 0);
     },
 
+    async publishToBase(product) {
+      product.base_status = 'loading';
+      try {
+        const res = await fetch('/api/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product_id: product.id,
+            title: product.title,
+            description: product.description,
+            price: Number(product.sell_price),
+            image_url: product.image_url,
+            platform: 'base',
+          }),
+        });
+        const data = await res.json();
+        if (data.base?.status === 'success') {
+          product.base_status = 'success';
+          product.base_admin_url = data.base.admin_url;
+        } else {
+          product.base_status = 'error';
+          product.base_error = data.base?.message || '出品に失敗しました';
+        }
+      } catch (e) {
+        product.base_status = 'error';
+        product.base_error = 'ネットワークエラーが発生しました';
+      }
+    },
+
     reset() {
       this.step = 1;
       this.form = { concept: '', category: '子供服' };
