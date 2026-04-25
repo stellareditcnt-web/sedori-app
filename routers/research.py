@@ -1,4 +1,5 @@
 import os
+import asyncio
 import json
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -37,7 +38,8 @@ async def research_trends(req: ConceptRequest):
 JSONのみ返してください。余分なテキスト不要。
 """
 
-    response = client.models.generate_content(
+    response = await asyncio.to_thread(
+        client.models.generate_content,
         model="gemini-2.5-flash",
         contents=prompt,
     )

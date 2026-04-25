@@ -1,4 +1,5 @@
 import os
+import asyncio
 import httpx
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -17,8 +18,9 @@ RELIABLE_KEYWORDS = ["dress", "jacket", "hat", "romper", "skirt", "coat", "hoodi
 
 async def translate_keywords(keyword: str) -> list[str]:
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
+    response = await asyncio.to_thread(
+        client.models.generate_content,
+        model="gemini-2.5-flash-lite",
         contents=(
             f"次の日本語キーワードに最も近い英単語を、以下のリストから3つ選んでカンマ区切りで返してください。"
             f"選択肢: {', '.join(RELIABLE_KEYWORDS)}\n"
@@ -36,8 +38,9 @@ async def translate_keywords(keyword: str) -> list[str]:
 async def translate_titles_to_japanese(titles: list[str]) -> list[str]:
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     numbered = "\n".join(f"{i+1}. {t}" for i, t in enumerate(titles))
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
+    response = await asyncio.to_thread(
+        client.models.generate_content,
+        model="gemini-2.5-flash-lite",
         contents=(
             f"以下の英語商品タイトルを自然な日本語に翻訳してください。\n"
             f"番号付きリストで、番号と翻訳のみ返してください。\n\n{numbered}"
