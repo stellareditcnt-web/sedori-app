@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
+from config import calc_sell_price, get_config, save_config
 
 router = APIRouter()
 
@@ -29,10 +30,27 @@ MOCK_PRODUCTS = [
 @router.post("/search")
 async def search_products(req: SearchRequest):
     # TODO: AliExpress APIキー取得後に実装
-    # 現在はモックデータを返す
     products = []
     for p in MOCK_PRODUCTS:
         p_copy = p.copy()
         p_copy["title"] = f"【{req.keyword}】{p_copy['title']}"
+        p_copy["suggested_price"] = calc_sell_price(p_copy["price_jpy"])
         products.append(p_copy)
     return {"products": products, "keyword": req.keyword}
+
+
+class PricingConfig(BaseModel):
+    price_multiplier: float
+
+
+@router.get("/pricing-config")
+async def get_pricing_config():
+    return get_config()
+
+
+@router.post("/pricing-config")
+async def update_pricing_config(req: PricingConfig):
+    config = get_config()
+    config["price_multiplier"] = req.price_multiplier
+    save_config(config)
+    return {"message": "更新しました", "config": config}

@@ -56,7 +56,7 @@ function app() {
       if (idx >= 0) {
         this.selectedProducts.splice(idx, 1);
       } else {
-        this.selectedProducts.push({ ...product, sell_price: '' });
+        this.selectedProducts.push({ ...product, sell_price: product.suggested_price || '' });
       }
     },
 
