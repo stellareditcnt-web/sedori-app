@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: sedori-app
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: BASE_CLIENT_ID
+        sync: false
+      - key: BASE_CLIENT_SECRET
+        sync: false
+      - key: BASE_REDIRECT_URI
+        sync: false

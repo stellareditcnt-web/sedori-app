@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>せどり自動出品アプリ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .step-active { @apply bg-indigo-600 text-white; }
+    .step-done   { @apply bg-green-500 text-white; }
+    .step-idle   { @apply bg-gray-200 text-gray-500; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen" x-data="app()" x-cloak>
+
+  <!-- ヘッダー -->
+  <header class="bg-indigo-600 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow">
+    <span class="text-2xl">🛍️</span>
+    <h1 class="text-lg font-bold">せどり自動出品</h1>
+  </header>
+
+  <!-- ステップインジケーター -->
+  <div class="flex justify-center gap-2 py-3 px-4 bg-white border-b shadow-sm sticky top-14 z-10">
+    <template x-for="(label, i) in steps" :key="i">
+      <div class="flex items-center gap-1">
+        <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+             :class="step > i+1 ? 'bg-green-500 text-white' : step === i+1 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'">
+          <span x-show="step <= i+1" x-text="i+1"></span>
+          <span x-show="step > i+1">✓</span>
+        </div>
+        <span class="text-xs hidden sm:inline" :class="step === i+1 ? 'text-indigo-600 font-semibold' : 'text-gray-400'" x-text="label"></span>
+        <span x-show="i < steps.length-1" class="text-gray-300 text-xs">›</span>
+      </div>
+    </template>
+  </div>
+
+  <main class="max-w-lg mx-auto px-4 py-6">
+
+    <!-- STEP 1: コンセプト入力 -->
+    <div x-show="step === 1">
+      <h2 class="text-xl font-bold mb-1">店舗コンセプトを入力</h2>
+      <p class="text-gray-500 text-sm mb-4">どんな店にしたいかを教えてください</p>
+
+      <div class="bg-white rounded-2xl shadow p-4 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">カテゴリ</label>
+          <select x-model="form.category" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+            <option value="子供服">👶 子供服</option>
+            <option value="ペット用品">🐾 ペット用品</option>
+            <option value="レディースファッション">👗 レディースファッション</option>
+            <option value="メンズファッション">👔 メンズファッション</option>
+            <option value="雑貨・インテリア">🏠 雑貨・インテリア</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">店舗コンセプト</label>
+          <textarea x-model="form.concept"
+            rows="4"
+            placeholder="例：韓国テイストのおしゃれな子供服を安く提供したい。Instagram映えするデザインを重視。"
+            class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none resize-none"></textarea>
+        </div>
+
+        <button @click="doResearch()"
+          :disabled="!form.concept || loading"
+          class="w-full bg-indigo-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+          <span x-show="!loading">🔍 トレンドリサーチ開始</span>
+          <span x-show="loading" class="flex items-center gap-2">
+            <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="white" stroke-width="4"/>
+              <path class="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            AIがリサーチ中...
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: キーワード表示 -->
+    <div x-show="step === 2">
+      <h2 class="text-xl font-bold mb-1">トレンドキーワード</h2>
+      <p class="text-gray-500 text-sm mb-4">検索に使うキーワードを選んでください</p>
+
+      <div class="bg-white rounded-2xl shadow p-4 mb-4 space-y-3">
+        <div class="bg-indigo-50 rounded-xl p-3">
+          <p class="text-sm text-indigo-800" x-text="research.trend_reason"></p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 mb-1">ターゲット層</p>
+          <p class="text-sm font-medium" x-text="research.target_audience"></p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 mb-1">推奨仕入れ価格帯</p>
+          <p class="text-sm font-medium" x-text="`¥${research.price_range?.min?.toLocaleString()} 〜 ¥${research.price_range?.max?.toLocaleString()}`"></p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow p-4 mb-4">
+        <p class="text-sm font-medium text-gray-700 mb-2">検索キーワード（タップして選択）</p>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="kw in research.keywords" :key="kw">
+            <button @click="selectedKeyword = kw"
+              :class="selectedKeyword === kw ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700'"
+              class="px-3 py-1.5 rounded-full text-sm font-medium transition"
+              x-text="kw"></button>
+          </template>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button @click="step = 1" class="flex-1 border border-gray-300 text-gray-600 font-bold py-3 rounded-xl">← 戻る</button>
+        <button @click="doSearch()"
+          :disabled="!selectedKeyword || loading"
+          class="flex-2 flex-grow-2 bg-indigo-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+          <span x-show="!loading">商品を検索</span>
+          <span x-show="loading" class="flex items-center gap-2">
+            <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="white" stroke-width="4"/>
+              <path class="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            検索中...
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 3: 商品一覧 -->
+    <div x-show="step === 3">
+      <h2 class="text-xl font-bold mb-1">商品候補</h2>
+      <p class="text-gray-500 text-sm mb-4">出品したい商品を選んでください（複数可）</p>
+
+      <div class="space-y-3 mb-4">
+        <template x-for="product in products" :key="product.id">
+          <div @click="toggleSelect(product)"
+            :class="isSelected(product) ? 'ring-2 ring-indigo-500 bg-indigo-50' : 'bg-white'"
+            class="rounded-2xl shadow p-3 flex gap-3 cursor-pointer transition">
+            <div class="relative">
+              <img :src="product.image_url" class="w-20 h-20 rounded-xl object-cover bg-gray-100" />
+              <div x-show="isSelected(product)" class="absolute -top-1 -right-1 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold">✓</div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium line-clamp-2" x-text="product.title"></p>
+              <p class="text-indigo-600 font-bold mt-1" x-text="`¥${product.price_jpy.toLocaleString()}`"></p>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-yellow-500 text-xs">★ <span x-text="product.rating"></span></span>
+                <span class="text-gray-400 text-xs" x-text="`${product.orders}件`"></span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div class="flex gap-2 sticky bottom-4">
+        <button @click="step = 2" class="border border-gray-300 text-gray-600 font-bold py-3 px-4 rounded-xl">← 戻る</button>
+        <button @click="step = 4"
+          :disabled="selectedProducts.length === 0"
+          class="flex-1 bg-indigo-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition">
+          <span x-text="`選択した商品を確認 (${selectedProducts.length}件)`"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 4: 出品情報確認・価格設定 -->
+    <div x-show="step === 4">
+      <h2 class="text-xl font-bold mb-1">出品情報の確認</h2>
+      <p class="text-gray-500 text-sm mb-4">価格を設定して出品しましょう</p>
+
+      <div class="space-y-4 mb-4">
+        <template x-for="(product, idx) in selectedProducts" :key="product.id">
+          <div class="bg-white rounded-2xl shadow overflow-hidden">
+            <img :src="product.image_url" class="w-full h-48 object-cover" />
+            <div class="p-4 space-y-3">
+              <div>
+                <label class="text-xs text-gray-500">商品タイトル</label>
+                <input type="text" :value="product.title"
+                  @input="selectedProducts[idx].title = $event.target.value"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1" />
+              </div>
+              <div>
+                <label class="text-xs text-gray-500">商品説明</label>
+                <textarea rows="3"
+                  @input="selectedProducts[idx].description = $event.target.value"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mt-1 resize-none"
+                  x-text="product.description"></textarea>
+              </div>
+              <div class="flex gap-3 items-end">
+                <div class="flex-1">
+                  <label class="text-xs text-gray-500">仕入れ価格</label>
+                  <p class="text-sm font-medium mt-1" x-text="`¥${product.price_jpy.toLocaleString()}`"></p>
+                </div>
+                <div class="flex-1">
+                  <label class="text-xs text-gray-500 font-medium text-indigo-600">販売価格 (円) *</label>
+                  <input type="number"
+                    x-model="selectedProducts[idx].sell_price"
+                    :placeholder="`推奨: ¥${Math.ceil(product.price_jpy * 2.5).toLocaleString()}`"
+                    class="w-full border-2 border-indigo-300 rounded-lg px-3 py-2 text-sm mt-1 focus:border-indigo-500 focus:outline-none" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div class="flex gap-2 sticky bottom-4">
+        <button @click="step = 3" class="border border-gray-300 text-gray-600 font-bold py-3 px-4 rounded-xl">← 戻る</button>
+        <button @click="step = 5"
+          :disabled="!allPricesSet()"
+          class="flex-1 bg-green-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition">
+          出品へ進む →
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 5: 出品実行 -->
+    <div x-show="step === 5">
+      <h2 class="text-xl font-bold mb-1">出品・投稿</h2>
+      <p class="text-gray-500 text-sm mb-4">プラットフォームを選んで出品してください</p>
+
+      <div class="space-y-3 mb-4">
+        <template x-for="product in selectedProducts" :key="product.id">
+          <div class="bg-white rounded-2xl shadow p-4">
+            <div class="flex gap-3 mb-3">
+              <img :src="product.image_url" class="w-16 h-16 rounded-xl object-cover" />
+              <div>
+                <p class="text-sm font-medium line-clamp-2" x-text="product.title"></p>
+                <p class="text-green-600 font-bold" x-text="`販売価格: ¥${Number(product.sell_price).toLocaleString()}`"></p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <a :href="`https://thebase.com/`" target="_blank"
+                class="bg-orange-500 text-white text-center py-2 rounded-xl text-sm font-bold">
+                BASE に出品 →
+              </a>
+              <button
+                class="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-xl text-sm font-bold">
+                Instagram 投稿
+              </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-2 text-center">※ API連携後は自動化されます</p>
+          </div>
+        </template>
+      </div>
+
+      <button @click="reset()" class="w-full border border-gray-300 text-gray-600 font-bold py-3 rounded-xl">
+        最初からやり直す
+      </button>
+    </div>
+
+  </main>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
