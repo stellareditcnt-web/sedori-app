@@ -1,7 +1,7 @@
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
-from .base_auth import get_token
+from .base_auth import get_valid_token
 
 router = APIRouter()
 
@@ -18,11 +18,10 @@ class PublishRequest(BaseModel):
 
 
 async def post_to_base(title: str, description: str, price: int, image_url: str) -> dict:
-    token = get_token()
-    if not token:
+    access_token = await get_valid_token()
+    if not access_token:
         return {"status": "error", "message": "BASE未認証。/auth/base にアクセスして認証してください。"}
 
-    access_token = token.get("access_token")
     headers = {"Authorization": f"Bearer {access_token}"}
 
     # 画像をダウンロードしてBASEにアップロード
@@ -51,7 +50,8 @@ async def post_to_base(title: str, description: str, price: int, image_url: str)
         return {
             "status": "success",
             "item_id": item_id,
-            "admin_url": f"https://admin.thebase.com/items/detail/{item_id}",
+            "item_url": item.get("item_url", ""),
+            "admin_url": f"https://admin.thebase.com/shop_admin/items/edit/{item_id}",
         }
     return {"status": "error", "message": data.get("error_description", str(data))}
 

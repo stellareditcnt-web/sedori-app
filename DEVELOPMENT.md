@@ -1,6 +1,6 @@
 # Shoppi — せどり自動出品アプリ 開発状況
 
-最終更新: 2026-04-25
+最終更新: 2026-04-28
 
 ---
 
@@ -21,7 +21,7 @@
 | バックエンド | Python 3.10 + FastAPI |
 | フロントエンド | HTML + TailwindCSS CDN + Alpine.js |
 | AI リサーチ | Google Gemini API（gemini-2.5-flash） |
-| 商品検索 | RapidAPI AliExpress Datahub（つなぎ） |
+| 商品検索 | AliExpress DS 公式 API（AppKey: 533080） |
 | 自動出品 | BASE API（OAuth 2.0） |
 | デプロイ | Render（無料プラン） |
 
@@ -32,13 +32,13 @@
 | 機能 | 状態 | 備考 |
 |------|------|------|
 | Gemini トレンドリサーチ | ✅ 完了 | コンセプト入力→キーワード生成 |
-| 商品検索 | ✅ 完了（つなぎ） | RapidAPI経由、一部キーワードでクセあり |
+| 商品検索 | ✅ 完了 | AliExpress DS 公式 API（JPY・日本語・JP発送） |
 | 価格自動計算 | ✅ 完了 | 原価×3（変更可能） |
-| BASE OAuth認証 | ✅ 完了 | base_token.json に保存 |
+| BASE OAuth認証 | ✅ 完了 | base_token.json に保存。リフレッシュトークン自動更新対応 |
 | BASE 自動出品 | ✅ 完了 | 画像・タイトル・説明文・価格を自動投稿 |
 | デプロイ（スマホ対応） | ✅ 完了 | Render + PWA対応UI |
-| Instagram 自動投稿 | ⏳ 保留 | Facebook アカウント制限解除待ち |
-| AliExpress 公式 API | ⏳ 審査待ち | 承認後にRapidAPIから差し替え |
+| Instagram 自動投稿 | ⏳ 進行中 | Meta Developer App作成済み。Graph API実装待ち |
+| AliExpress 公式 API | ✅ 完了 | DS API（Dropshipping individual）審査即通過・切り替え済み |
 | 価格ルール詳細化 | ⏳ 未定 | 現在は原価×3のみ |
 | Taobao 連携 | ❌ スコープ外 | 難易度高のため今回は対象外 |
 | TikTok Shop 連携 | ❌ スコープ外 | 審査が厳しいため今回は対象外 |
@@ -48,15 +48,15 @@
 ## 環境変数（.env）
 
 ```
-GEMINI_API_KEY=         # Google AI Studio で取得
-BASE_CLIENT_ID=         # BASE 開発者ポータル
-BASE_CLIENT_SECRET=     # BASE 開発者ポータル
-BASE_REDIRECT_URI=      # 本番: https://sedori-app-s47h.onrender.com/auth/callback
-RAPIDAPI_KEY=           # RapidAPI（AliExpress Datahub）
+GEMINI_API_KEY=              # Google AI Studio で取得
+BASE_CLIENT_ID=              # BASE 開発者ポータル
+BASE_CLIENT_SECRET=          # BASE 開発者ポータル
+BASE_REDIRECT_URI=           # 本番: https://sedori-app-s47h.onrender.com/auth/callback
+ALIEXPRESS_APP_KEY=533080    # AliExpress Open Platform（DS App）
+ALIEXPRESS_APP_SECRET=       # AliExpress Open Platform（DS App）
+RAPIDAPI_KEY=                # 現在未使用（公式APIに切り替え済み）
 # 後で追加
-# INSTAGRAM_ACCESS_TOKEN=
-# ALIEXPRESS_APP_KEY=   # 公式審査通過後
-# ALIEXPRESS_APP_SECRET=
+# INSTAGRAM_ACCESS_TOKEN=    # Meta Developer App作成済み・実装待ち
 ```
 
 ---
@@ -86,11 +86,12 @@ sedori-app/
 ## 残タスク・TODO
 
 ### 優先度高
-- [ ] AliExpress 公式 API 審査通過後に `routers/products.py` を差し替え
-- [ ] Facebook アカウント制限解除後に Instagram 自動投稿を実装
-  - Meta Developer App 作成
-  - Instagram Graph API 連携
-  - `/api/publish` の instagram 部分を実装
+- [x] AliExpress 公式 DS API に切り替え完了（`routers/products.py`）
+- [ ] Instagram 自動投稿の実装
+  - [x] Meta Developer App 作成（ユースケース: Instagramでメッセージとコンテンツを管理）
+  - [x] Instagram ビジネスアカウント設定済み
+  - [ ] Instagram Graph API アクセストークン取得
+  - [ ] `/api/publish` の instagram 部分を実装
 
 ### 優先度中
 - [ ] 価格ルールの詳細化（送料・手数料込みの自動計算）
@@ -99,7 +100,7 @@ sedori-app/
 
 ### 優先度低
 - [ ] Render の有料プランへの移行（無料プランは15分で自動スリープ）
-- [ ] RapidAPI の有料プランへの移行（リクエスト数上限の緩和）
+- [x] RapidAPI 撤廃済み（AliExpress 公式 API に完全移行）
 
 ---
 
@@ -107,9 +108,9 @@ sedori-app/
 
 | 問題 | 原因 | 対処 |
 |------|------|------|
-| RapidAPI でキーワードによって0件になる | 無料プランのキャッシュ制限 | モックにフォールバック済み。公式APIで解消予定 |
 | Render が最初のアクセスで遅い | 無料プランのスリープ機能 | 有料プランで解消（月$7〜） |
-| BASE 認証トークンの期限切れ | OAuth トークンに有効期限あり | `/auth/base` に再アクセスで再認証 |
+| BASE 認証トークンの期限切れ | OAuth トークンに1時間の有効期限あり | リフレッシュトークン自動更新を実装済み（2026-04-28） |
+| BASE管理画面URLが誤っていた | パスが `/items/detail/` だった | `/shop_admin/items/edit/` に修正済み（2026-04-28） |
 
 ---
 

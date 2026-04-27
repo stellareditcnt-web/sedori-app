@@ -1,6 +1,8 @@
 import os
 import asyncio
+import hashlib
 import httpx
+from datetime import datetime, timezone
 from fastapi import APIRouter
 from pydantic import BaseModel
 from google import genai
@@ -8,31 +10,13 @@ from config import calc_sell_price, get_config, save_config
 
 router = APIRouter()
 
-RAPIDAPI_HOST = "aliexpress-datahub.p.rapidapi.com"
-USD_TO_JPY = 150
+ALIEXPRESS_API_URL = "https://api-sg.aliexpress.com/sync"
 
 
-# AliExpress APIで安定して動くキーワード一覧
-RELIABLE_KEYWORDS = ["dress", "jacket", "hat", "romper", "skirt", "coat", "hoodie", "cardigan"]
-
-
-async def translate_keywords(keyword: str) -> list[str]:
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-    response = await asyncio.to_thread(
-        client.models.generate_content,
-        model="gemini-2.5-flash-lite",
-        contents=(
-            f"次の日本語キーワードに最も近い英単語を、以下のリストから3つ選んでカンマ区切りで返してください。"
-            f"選択肢: {', '.join(RELIABLE_KEYWORDS)}\n"
-            f"単語のみ、説明不要。\n"
-            f"キーワード: {keyword}"
-        ),
-    )
-    raw = response.text.strip().strip('"').strip("'")
-    candidates = [k.strip().lower() for k in raw.split(",") if k.strip()]
-    # 安全のため確実に動くキーワードのみ使用
-    valid = [k for k in candidates if k in RELIABLE_KEYWORDS]
-    return valid if valid else RELIABLE_KEYWORDS[:3]
+def _sign(params: dict, app_secret: str) -> str:
+    sorted_params = sorted(params.items())
+    base = app_secret + "".join(f"{k}{v}" for k, v in sorted_params) + app_secret
+    return hashlib.md5(base.encode()).hexdigest().upper()
 
 
 async def translate_titles_to_japanese(titles: list[str]) -> list[str]:
@@ -59,51 +43,53 @@ async def translate_titles_to_japanese(titles: list[str]) -> list[str]:
 
 
 async def search_aliexpress(keyword: str) -> list:
-    api_key = os.getenv("RAPIDAPI_KEY")
-    headers = {
-        "X-RapidAPI-Key": api_key,
-        "X-RapidAPI-Host": RAPIDAPI_HOST,
-    }
+    app_key = os.getenv("ALIEXPRESS_APP_KEY")
+    app_secret = os.getenv("ALIEXPRESS_APP_SECRET")
 
-    # 日本語キーワードを英語候補に変換して順番に試す
-    en_keywords = await translate_keywords(keyword)
-    items = []
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    params = {
+        "app_key": app_key,
+        "method": "aliexpress.ds.product.search",
+        "sign_method": "md5",
+        "timestamp": timestamp,
+        "keywords": keyword,
+        "page_no": "1",
+        "page_size": "20",
+        "sort": "SALE_PRICE_ASC",
+        "target_currency": "JPY",
+        "target_language": "JA",
+        "ship_to_country": "JP",
+    }
+    params["sign"] = _sign(params, app_secret)
 
     async with httpx.AsyncClient(timeout=15) as client:
-        for en_kw in en_keywords:
-            res = await client.get(
-                f"https://{RAPIDAPI_HOST}/item_search_4",
-                headers=headers,
-                params={"q": en_kw, "page": "1"},
-            )
-            data = res.json()
-            items = data.get("result", {}).get("resultList", [])
-            if items:
-                break
-    products = []
-    for item in items[:10]:
-        info = item if "itemId" in item else item.get("item", item)
-        sku = info.get("sku", {}).get("def", {})
-        price_usd = float(sku.get("promotionPrice") or sku.get("price") or 0)
-        price_jpy = int(price_usd * USD_TO_JPY)
+        res = await client.post(ALIEXPRESS_API_URL, data=params)
 
-        image = info.get("image", "")
-        if image.startswith("//"):
-            image = "https:" + image
+    data = res.json()
+    resp = data.get("aliexpress_ds_product_search_response", {})
+    result = resp.get("resp_result", {}).get("result", {})
+    raw_products = result.get("products", {}).get("traffic_product_dto", [])
+
+    products = []
+    for item in raw_products[:10]:
+        price_str = item.get("sale_price") or item.get("original_price") or "0"
+        try:
+            price_jpy = int(float(price_str))
+        except ValueError:
+            price_jpy = 0
 
         products.append({
-            "id": str(info.get("itemId", "")),
-            "title": info.get("title", ""),
+            "id": str(item.get("product_id", "")),
+            "title": item.get("product_title", ""),
             "price_jpy": price_jpy,
-            "image_url": image,
-            "product_url": "https:" + info.get("itemUrl", "") if info.get("itemUrl", "").startswith("//") else info.get("itemUrl", ""),
-            "description": info.get("title", ""),
+            "image_url": item.get("product_main_image_url", ""),
+            "product_url": item.get("product_detail_url", ""),
+            "description": item.get("product_title", ""),
             "shop_name": "",
-            "rating": float(info.get("averageStarRate") or 4.5),
-            "orders": int(info.get("sales") or 0),
+            "rating": float(item.get("evaluate_rate", "0").replace("%", "") or 0) / 20,
+            "orders": int(item.get("lastest_volume") or 0),
         })
 
-    # タイトルを日本語に翻訳
     if products:
         en_titles = [p["title"] for p in products]
         ja_titles = await translate_titles_to_japanese(en_titles)
